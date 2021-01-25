@@ -1,0 +1,162 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta http-equiv="cache-control" content="max-age=0" />
+<meta http-equiv="cache-control" content="no-store" />
+<meta http-equiv="expires" content="-1" />
+<meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT" />
+<meta http-equiv="pragma" content="no-cache" />
+<link rel="manifest" href="manifest.json">
+
+<style>
+html {
+	touch-action:none;
+}
+
+body {
+    overflow-x: hidden !important;
+    overscroll-behavior: none;
+}
+</style>
+<script type="text/javascript">
+function getRequestFullScreenKey() {
+        let goFullScreen = 'requestFullscreen';
+        if ('mozRequestFullScreen' in document.documentElement) {
+            goFullScreen = 'mozRequestFullScreen';
+        } else if ('webkitRequestFullscreen' in document.documentElement) {
+            goFullScreen = 'webkitRequestFullscreen';
+        } else if ('msRequestFullscreen' in document.documentElement) {
+            goFullScreen = 'msRequestFullscreen';
+        }
+        return goFullScreen;
+    }
+var hasTouch = false;
+
+var touchStatus = new Array(20);
+// 2 first numbers for viewport's width and height
+// 20 more for x and y of 10 touches max
+touchStatus.width = 0;
+touchStatus.height = 0;
+touchStatus.reset = function() {
+	for (var i = 2; i < touchStatus.length; i++) {
+		touchStatus[i] = -1;
+	}
+}
+
+var colors = [ '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF','#00FFFF',  '#ABCDEF', '#FF9999', '#CC0066', '#999900' ]; 
+function $(el) { return document.getElementById(el); }
+
+function reqListener () {
+  console.log("response: " + this.responseText);
+}
+
+function API(name, message) {
+	try {
+		var oReq = new XMLHttpRequest();
+		//oReq.addEventListener("load", reqListener);
+		oReq.open("POST", "/" + name);
+		oReq.send(message);
+	} catch (e) {
+		console.log(e);
+	}
+}
+
+function stop(e) { if (!e.cancellable) return; e.preventDefault(); e.stopPropagation(); }
+function process(e) {
+document.documentElement[getRequestFullScreenKey()]();
+screen.orientation.lock("landscape");
+	stop(e);
+	//console.log(e);
+	var context = $("panel").getContext('2d');
+	//$("msg").innerHTML = JSON.stringify(touchStatus);
+	const radius = window.devicePixelRatio*96 * 0.2;
+	
+	/*$("msg").innerHTML += "<br>[";
+	for (var i = 0; i < e.touches.length; i++) {
+		$("msg").innerHTML += ~~e.touches.item(i).clientX + "," + ~~e.touches.item(i).clientY;
+		if (i != e.touches.length - 1) $("msg").innerHTML += ",";
+	} 
+	$("msg").innerHTML += "]";*/
+	
+	var drawCircle = function(x, y, c) {
+		if (x == -1 || y == -1) return;
+		context.beginPath();
+		context.arc(x, y, radius, 0, 2 * Math.PI, false);
+		context.fillStyle = c;
+		context.fill();
+	}
+	
+	var i, x, y;
+	context.clearRect(0, 0, $("panel").width, $("panel").height);
+	for (var i=0; i < (touchStatus.length)/2; i++) {
+		drawCircle(touchStatus[2*i], touchStatus[2*i+1], colors[i]);
+	}
+
+	API("input", 
+		touchStatus.width + "," + 
+		touchStatus.height + "," + 
+		touchStatus.toString()
+	);
+	
+	return false;
+}
+
+function keepTouches(e) {
+	var id;
+	hasTouch = true;
+	
+	touchStatus.reset();
+	var id;
+	function findSlotById(e, id) {
+		r = { "clientX": -1, "clientY": -1 };
+		for (var i=0; i < e.touches.length; i++) {
+			with(e.touches[i]) {
+				if (identifier == id) {
+						r.clientX = ~~clientX;
+						r.clientY = ~~clientY;
+				}
+			}
+		}
+		return r;
+	}
+
+	var ts = Array.from(e.touches);
+	for (var i = 0; i < 10; i++) {
+		t = ts.find(_t => _t.identifier == i);
+		touchStatus[i*2] = t?~~t.clientX:-1;
+		touchStatus[i*2 + 1] = t?~~t.clientY:-1;
+	}
+	
+	return process(e);
+}
+
+function onload() {
+	$("panel").addEventListener("mousemove",function(e){
+		if (hasTouch) return;
+		touchStatus.reset();
+		touchStatus[0] = e.clientX;
+		touchStatus[1] = e.clientY;
+		process(e);
+		return true;
+	},false);
+	
+	["start", "end", "move", "cancel"].forEach(
+		n => $("panel").addEventListener("touch"+n, keepTouches, false)
+	);
+
+	function onresize() {
+		touchStatus.width = $("panel").width = document.body.clientWidth;
+		touchStatus.height = $("panel").height = document.body.clientHeight;
+		return true;
+	}
+	window.addEventListener('resize', onresize, false);
+	onresize();
+}
+</script>
+</head>
+<body  onContextmenu="return false", onload="onload()">
+<canvas id="panel" style="position:absolute;top:0px;left:0px;width:100%;height:100%;">
+</canvas>
+<div id="msg">&nbsp;</div>
+</body>
+</html>
