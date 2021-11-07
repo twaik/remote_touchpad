@@ -158,27 +158,13 @@ static inline void change_tool(struct uinput_device *d) {
 	uint8_t tc[2], slot = d->current_slot;
 	tc[0] = touch_count(d->slots[0].touch);
 	tc[1] = touch_count(d->slots[1].touch);
-	
-	{
-		struct touch *t = d->slots[0].touch;
-		uint8_t i, c = 0;
-
-		printf("touches: ");
-		for (i=0; i<10; i++)
-			printf("%d", (-1 != -1 != t[i].x && -1 != t[i].y));
-		printf("\n");
-		printf("touch count: %d\n", tc[slot]);
-		
-	}
 
 	if (!tc[slot] != !tc[!slot])
 		write_event(d, EV_KEY, BTN_TOUCH, !!tc[slot]);
 	if (tc[slot] != tc[!slot] && tc[slot] <= 5) { 
 		for (int i=1; i <= 5; i++)
-			if (i == tc[slot] || i == tc[!slot]) {
+			if (i == tc[slot] || i == tc[!slot])
 				write_event(d, EV_KEY, tool_by_touchcount(i), tc[slot]==i);
-				printf("Changing tool to %d\n", tool_by_touchcount(i));
-			}
 	}
 }
 
